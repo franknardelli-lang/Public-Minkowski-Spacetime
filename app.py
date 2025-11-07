@@ -56,7 +56,7 @@ def make_hyperbolae_traces(x_extent, t_extent):
         ]
     return traces
 
-def build_figure(events, vB, vC, frame, x_extent, t_extent):
+def build_figure(events, vB, vC, frame, x_extent, t_extent,fig_height=720):
     """Assemble the full diagram in the *selected frame*."""
     # Active frame velocity
     v_frame = 0.0 if frame == "A" else (vB if frame == "B" else vC)
@@ -138,6 +138,7 @@ def build_figure(events, vB, vC, frame, x_extent, t_extent):
 
     frame_color = {"A": "red", "B": "blue", "C": "green"}.get(frame, "black")
     fig.update_layout(
+        height=fig_height,
         xaxis=dict(range=xlim, title="Space (x)"),
         yaxis=dict(range=tlim, title="Time (t)", scaleanchor="x", scaleratio=1),
         margin=dict(l=20, r=20, t=50, b=10),
@@ -195,7 +196,7 @@ if st.sidebar.button("Reset defaults"):
 
 # Build + render
 fig, v_frame = build_figure(st.session_state.events, vB, vC, frame, x_extent, t_extent)
-st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": True})
+st.plotly_chart(fig, width="stretch", config={"displayModeBar": True})
 
 # Readouts
 col1, col2 = st.columns([1, 1])
