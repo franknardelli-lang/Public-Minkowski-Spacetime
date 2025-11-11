@@ -1,222 +1,248 @@
-# Streamlit + Plotly Minkowski diagram (visualization only, no dragging yet)
-
-import math
-import numpy as np
 import streamlit as st
-import plotly.graph_objects as go
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch
 
-# ---- If you already have these in minkowski_math.py, you can import instead:
-# from minkowski_math import lorentz_transform, relative_velocity, spacetime_intervals
+# Set page config
+st.set_page_config(
+    page_title="Minkowski Spacetime Diagram",
+    page_icon="🌌",
+    layout="wide"
+)
 
+# Title
+st.title("🌌 Interactive Minkowski Spacetime Diagram")
+st.markdown("Explore special relativity through interactive spacetime diagrams")
+
+# Helper functions from minkowski_math.py
 def lorentz_transform(points, v):
-    """(t,x) -> (t',x') for velocity v (c=1). points: Nx2 array [t,x]."""
-    gamma = 1.0 / math.sqrt(1.0 - v*v + 1e-15)
+    """Apply Lorentz transformation to a set of (t, x) points."""
+    gamma = 1 / np.sqrt(1 - v*v)
     t, x = points[:, 0], points[:, 1]
     t_p = gamma * (t - v * x)
     x_p = gamma * (x - v * t)
     return np.column_stack((t_p, x_p))
 
 def relative_velocity(u, v):
-    """Einstein velocity addition u ⊕ (-v) = (u - v)/(1 - u v)."""
-    return (u - v) / (1.0 - u*v + 1e-15)
+    """Velocity addition formula for special relativity."""
+    return (u - v) / (1 - u * v)
 
-def spacetime_intervals(events, c=1.0, v_frame=0.0):
-    """Invariant intervals among A,B,C as seen in selected frame (for readout)."""
-    tp = lorentz_transform(events, v_frame)
-    (tA, xA), (tB, xB), (tC, xC) = tp
+def draw_static_elements(ax):
+    """Draw spacetime hyperbolae on the Minkowski diagram."""
+    s_vals = [1, 2, 3, 4, 5]
+    for s in s_vals:
+        x = np.linspace(s, 10, 400)
+        t = np.sqrt(x**2 - s**2)
+        ax.plot(x, t, 'b-', alpha=0.2)
+        ax.plot(-x, t, 'b-', alpha=0.2)
+        ax.plot(x, -t, 'b-', alpha=0.2)
+        ax.plot(-x, -t, 'b-', alpha=0.2)
+    for s in s_vals:
+        x = np.linspace(-10, 10, 400)
+        t = np.sqrt(x**2 + s**2)
+        ax.plot(x, t, 'r-', alpha=0.2)
+        ax.plot(x, -t, 'r-', alpha=0.2)
 
-    def S2(a, b):  # Minkowski (+,-) with c=1
-        return (c*(b[0] - a[0]))**2 - (b[1] - a[1])**2
-
-    return S2((tA,xA),(tB,xB)), S2((tA,xA),(tC,xC)), S2((tB,xB),(tC,xC))
-
-# --------------------------------------------------------------------
-# Plot construction
-# --------------------------------------------------------------------
-def make_hyperbolae_traces(x_extent, t_extent):
-    """Timelike (blue) and spacelike (red) hyperbolae background."""
-    traces = []
-    xs = np.linspace(-x_extent, x_extent, 600)
-    ts = np.linspace(-t_extent, t_extent, 600)
-
-    # Timelike: t^2 - x^2 = s^2  =>  t = ±sqrt(x^2 + s^2)
-    for s in [1, 2, 3, 4, 5]:
-        t = np.sqrt(xs**2 + s**2)
-        traces += [
-            go.Scatter(x=xs, y= t, mode="lines", line=dict(color="blue", width=1), opacity=0.18, hoverinfo="skip", showlegend=False),
-            go.Scatter(x=xs, y=-t, mode="lines", line=dict(color="blue", width=1), opacity=0.18, hoverinfo="skip", showlegend=False),
-        ]
-
-    # Spacelike: x^2 - t^2 = s^2  =>  x = ±sqrt(t^2 + s^2)
-    for s in [1, 2, 3, 4, 5]:
-        x = np.sqrt(ts**2 + s**2)
-        traces += [
-            go.Scatter(x= x, y=ts, mode="lines", line=dict(color="red", width=1), opacity=0.18, hoverinfo="skip", showlegend=False),
-            go.Scatter(x=-x, y=ts, mode="lines", line=dict(color="red", width=1), opacity=0.18, hoverinfo="skip", showlegend=False),
-        ]
-    return traces
-
-def build_figure(events, vB, vC, frame, x_extent, t_extent,fig_height=720):
-    """Assemble the full diagram in the *selected frame*."""
-    # Active frame velocity
-    v_frame = 0.0 if frame == "A" else (vB if frame == "B" else vC)
-    gamma   = 1.0 / math.sqrt(1.0 - v_frame*v_frame + 1e-15)
-
-    # Transform event coordinates -> (t',x') in active frame
-    tp = lorentz_transform(events, v_frame)
-    (tA, xA), (tB, xB), (tC, xC) = tp
-
-    # Relative velocities B,C as seen in active frame
-    vb_rel = relative_velocity(vB, v_frame)
-    vc_rel = relative_velocity(vC, v_frame)
-
-    xlim = (-x_extent, x_extent)
-    tlim = (-t_extent, t_extent)
-
-    fig = go.Figure()
-
-    # Axes
-    fig.add_shape(type="line", x0=xlim[0], x1=xlim[1], y0=0, y1=0, line=dict(color="black", width=1))
-    fig.add_shape(type="line", x0=0, x1=0, y0=tlim[0], y1=tlim[1], line=dict(color="black", width=1))
-
-    # Background hyperbolae
-    for tr in make_hyperbolae_traces(x_extent, t_extent):
-        fig.add_trace(tr)
-
-    # Worldlines for observers B and C (in active frame)
-    t_world = np.linspace(-t_extent, t_extent, 400)
-    for (v_obs, x0, t0) in [(vB, xB, tB), (vC, xC, tC)]:
-        x_world = v_obs * t_world + (x0 - v_obs * t0)  # x = v t + (x0 - v t0)
-        fig.add_trace(go.Scatter(
-            x=x_world, y=t_world, mode="lines",
-            line=dict(color="gray", dash="dot"), opacity=0.55,
-            hoverinfo="skip", showlegend=False
-        ))
-
-    # Simultaneity (cyan) + time-axis (magenta) for B and C, relative to active frame
-    X = np.linspace(-x_extent, x_extent, 600)
-    for (x0, t0, vrel) in [(xB, tB, vb_rel), (xC, tC, vc_rel)]:
-        # Simultaneity: t = t0 + vrel (X - x0)
-        t_sim = t0 + vrel * (X - x0)
-        fig.add_trace(go.Scatter(x=X, y=t_sim, mode="lines",
-                                 line=dict(color="cyan", width=2),
-                                 hoverinfo="skip", showlegend=False))
-        # Time axis: slope = 1/vrel, vertical if vrel≈0
-        if abs(vrel) < 1e-9:
-            fig.add_trace(go.Scatter(x=[x0, x0], y=[tlim[0], tlim[1]], mode="lines",
-                                     line=dict(color="magenta", width=2),
-                                     hoverinfo="skip", showlegend=False))
-        else:
-            slope = 1.0 / vrel
-            t_line = t0 + slope * (X - x0)
-            fig.add_trace(go.Scatter(x=X, y=t_line, mode="lines",
-                                     line=dict(color="magenta", width=2),
-                                     hoverinfo="skip", showlegend=False))
-
-    # Light cones from A (highlight red), B, C (gray)
-    xx = np.linspace(-x_extent, x_extent, 600)
-    for (x0, t0, color, alpha) in [(xA, tA, "red", 0.35),
-                                   (xB, tB, "gray", 0.25),
-                                   (xC, tC, "gray", 0.25)]:
-        fig.add_trace(go.Scatter(x=xx, y=t0 + (xx - x0), mode="lines",
-                                 line=dict(color=color, dash="dash", width=1),
-                                 opacity=alpha, hoverinfo="skip", showlegend=False))
-        fig.add_trace(go.Scatter(x=xx, y=t0 - (xx - x0), mode="lines",
-                                 line=dict(color=color, dash="dash", width=1),
-                                 opacity=alpha, hoverinfo="skip", showlegend=False))
-
-    # Event markers + labels
-    for (x, t, label, color) in [(xA, tA, "A", "red"),
-                                 (xB, tB, "B", "blue"),
-                                 (xC, tC, "C", "green")]:
-        fig.add_trace(go.Scatter(
-            x=[x], y=[t], mode="markers+text", text=[label], textposition="top center",
-            marker=dict(size=10, color=color),
-            hovertemplate=f"{label}: (t=%{{y:.2f}}, x=%{{x:.2f}})<extra></extra>",
-            showlegend=False
-        ))
-
-    frame_color = {"A": "red", "B": "blue", "C": "green"}.get(frame, "black")
-    fig.update_layout(
-        height=fig_height,
-        xaxis=dict(range=xlim, title="Space (x)"),
-        yaxis=dict(range=tlim, title="Time (t)", scaleanchor="x", scaleratio=1),
-        margin=dict(l=20, r=20, t=50, b=10),
-        plot_bgcolor="white",
-        title=f"Interactive Minkowski Spacetime Diagram — Frame {frame}  (γ={gamma:.3f}, v={v_frame:.2f}c)",
-        title_font=dict(color=frame_color),
-        showlegend=False,
-    )
-    return fig, v_frame
-
-# --------------------------------------------------------------------
-# Streamlit UI (visualization only)
-# --------------------------------------------------------------------
-st.set_page_config(page_title="Minkowski (Plotly, Visual Only)", layout="wide")
-st.title("🕘 Minkowski Spacetime Diagram — Visualization (no dragging yet)")
-
-# Session defaults (base frame coordinates)
-if "events" not in st.session_state:
-    st.session_state.events = np.array([[0.0, 0.0],   # A: (t,x)
-                                        [4.0, 2.0],   # B
-                                        [1.0, 3.0]],  # C
-                                       dtype=float)
+# Initialize session state
+if 'eventA' not in st.session_state:
+    st.session_state.eventA = np.array([0.0, 0.0])
+    st.session_state.eventB = np.array([4.0, 2.0])
+    st.session_state.eventC = np.array([1.0, 3.0])
+    st.session_state.v_b = 0.6
+    st.session_state.v_c = -0.4
+    st.session_state.current_frame = 'A'
 
 # Sidebar controls
-st.sidebar.header("Parameters")
+st.sidebar.header("⚙️ Controls")
 
-# Events (base frame) — editable
-st.sidebar.subheader("Event A")
-tA = st.sidebar.number_input("t_A", value=float(st.session_state.events[0, 0]), step=0.1, format="%.2f")
-xA = st.sidebar.number_input("x_A", value=float(st.session_state.events[0, 1]), step=0.1, format="%.2f")
-st.sidebar.subheader("Event B")
-tB = st.sidebar.number_input("t_B", value=float(st.session_state.events[1, 0]), step=0.1, format="%.2f")
-xB = st.sidebar.number_input("x_B", value=float(st.session_state.events[1, 1]), step=0.1, format="%.2f")
-st.sidebar.subheader("Event C")
-tC = st.sidebar.number_input("t_C", value=float(st.session_state.events[2, 0]), step=0.1, format="%.2f")
-xC = st.sidebar.number_input("x_C", value=float(st.session_state.events[2, 1]), step=0.1, format="%.2f")
+# Frame selection
+st.sidebar.subheader("Reference Frame")
+frame = st.sidebar.radio(
+    "Select Frame:",
+    ['A', 'B', 'C'],
+    index=['A', 'B', 'C'].index(st.session_state.current_frame),
+    horizontal=True
+)
+st.session_state.current_frame = frame
 
-st.session_state.events = np.array([[tA, xA], [tB, xB], [tC, xC]], dtype=float)
+st.sidebar.markdown("---")
 
-# Velocities & frame
-st.sidebar.subheader("Observer Velocities (v/c)")
-vB = st.sidebar.slider("v_B", -0.99, 0.99, 0.60, 0.01)
-vC = st.sidebar.slider("v_C", -0.99, 0.99, -0.40, 0.01)
-frame = st.sidebar.radio("Current Frame", ["A", "B", "C"], index=0)
+# Velocity controls
+st.sidebar.subheader("Velocities (v/c)")
+v_b = st.sidebar.slider("Event B velocity", -0.99, 0.99, st.session_state.v_b, 0.01)
+v_c = st.sidebar.slider("Event C velocity", -0.99, 0.99, st.session_state.v_c, 0.01)
+st.session_state.v_b = v_b
+st.session_state.v_c = v_c
 
-# Axes extents
-st.sidebar.subheader("Diagram Limits")
-x_extent = st.sidebar.slider("Space extent ±X", 4, 20, 10, 1)
-t_extent = st.sidebar.slider("Time extent ±T",  4, 20, 10, 1)
+st.sidebar.markdown("---")
 
-# Reset
-if st.sidebar.button("Reset defaults"):
-    st.session_state.events = np.array([[0.0, 0.0], [4.0, 2.0], [1.0, 3.0]], dtype=float)
-    vB, vC, frame = 0.60, -0.40, "A"
+# Event coordinates
+st.sidebar.subheader("Event Coordinates")
 
-# Build + render
-fig, v_frame = build_figure(st.session_state.events, vB, vC, frame, x_extent, t_extent)
-st.plotly_chart(fig, width="stretch", config={"displayModeBar": True})
-
-# Readouts
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.sidebar.columns(2)
 with col1:
-    st.subheader("Spacetime Intervals (invariant)")
-    S2_AB, S2_AC, S2_BC = spacetime_intervals(st.session_state.events, c=1.0, v_frame=v_frame)
+    st.markdown("**Event A**")
+    tA = st.number_input("t_A", value=float(st.session_state.eventA[0]), format="%.2f", key="tA")
+    xA = st.number_input("x_A", value=float(st.session_state.eventA[1]), format="%.2f", key="xA")
+    
+with col2:
+    st.markdown("**Event B**")
+    tB = st.number_input("t_B", value=float(st.session_state.eventB[0]), format="%.2f", key="tB")
+    xB = st.number_input("x_B", value=float(st.session_state.eventB[1]), format="%.2f", key="xB")
 
-    def describe(S2):
-        if S2 > 0:   return f"timelike (S = {math.sqrt(S2):.3f})"
-        if S2 < 0:   return f"spacelike (S = {math.sqrt(-S2):.3f} i)"
-        return "lightlike (S = 0)"
+col3, col4 = st.sidebar.columns(2)
+with col3:
+    st.markdown("**Event C**")
+    tC = st.number_input("t_C", value=float(st.session_state.eventC[0]), format="%.2f", key="tC")
+    
+with col4:
+    st.markdown("**&nbsp;**")
+    xC = st.number_input("x_C", value=float(st.session_state.eventC[1]), format="%.2f", key="xC")
 
-    st.markdown(
-        f"- **S²_AB = {S2_AB:.3f}** — {describe(S2_AB)}\n"
-        f"- **S²_AC = {S2_AC:.3f}** — {describe(S2_AC)}\n"
-        f"- **S²_BC = {S2_BC:.3f}** — {describe(S2_BC)}"
-    )
+# Update events
+st.session_state.eventA = np.array([tA, xA])
+st.session_state.eventB = np.array([tB, xB])
+st.session_state.eventC = np.array([tC, xC])
+
+# Main plot
+v_frame = 0 if frame == 'A' else (v_b if frame == 'B' else v_c)
+pts = np.array([st.session_state.eventA, st.session_state.eventB, st.session_state.eventC])
+Atp = lorentz_transform(pts, v_frame)
+(tA_p, xA_p), (tB_p, xB_p), (tC_p, xC_p) = Atp
+
+# Create figure
+fig, ax = plt.subplots(figsize=(12, 10))
+ax.set_xlim(-10, 10)
+ax.set_ylim(-10, 10)
+ax.set_aspect('equal')
+ax.set_xlabel('Space (x)', fontsize=12)
+ax.set_ylabel('Time (t)', fontsize=12)
+
+# Set title with color
+color_map = {'A': 'red', 'B': 'blue', 'C': 'green'}
+title_color = color_map.get(frame, 'black')
+ax.set_title(f'Interactive Minkowski Spacetime Diagram — Frame {frame}', 
+             color=title_color, fontsize=16, weight='bold')
+
+ax.axhline(0, color='black', linewidth=0.8)
+ax.axvline(0, color='black', linewidth=0.8)
+ax.grid(True, alpha=0.3)
+
+# Draw static elements
+draw_static_elements(ax)
+
+# Worldlines
+t_world = np.linspace(-10, 10, 200)
+for (v, x0, t0, color) in [(v_b, xB_p, tB_p, 'blue'), (v_c, xC_p, tC_p, 'green')]:
+    x_world = v * t_world + (x0 - v * t0)
+    ax.plot(x_world, t_world, color=color, alpha=0.3, linewidth=2, linestyle='--')
+
+# Simultaneity & Time axes
+vb_rel = relative_velocity(v_b, v_frame)
+vc_rel = relative_velocity(v_c, v_frame)
+X = np.linspace(-10, 10, 300)
+
+for (x0, t0, vrel, color) in [(xB_p, tB_p, vb_rel, 'b'), (xC_p, tC_p, vc_rel, 'g')]:
+    # Simultaneity line
+    t_sim = t0 + vrel * (X - x0)
+    ax.plot(X, t_sim, 'c-', linewidth=2, alpha=0.6)
+    
+    # Time axis
+    slope = np.inf if abs(vrel) < 1e-3 else 1 / vrel
+    if np.isinf(slope):
+        x_line = np.full_like(X, x0)
+        t_line = np.linspace(-10, 10, 300)
+    else:
+        x_line = X
+        t_line = t0 + slope * (X - x0)
+    ax.plot(x_line, t_line, 'm-', linewidth=2, alpha=0.6)
+
+# Light cones
+t_range = np.linspace(-10, 10, 400)
+for (x0, t0, color, alpha) in [(xA_p, tA_p, 'r', 0.4), (xB_p, tB_p, 'gray', 0.2), (xC_p, tC_p, 'gray', 0.2)]:
+    t_plus = t0 + (t_range - x0)
+    t_minus = t0 - (t_range - x0)
+    ax.plot(t_range, t_plus, linestyle='--', color=color, alpha=alpha, linewidth=1.5)
+    ax.plot(t_range, t_minus, linestyle='--', color=color, alpha=alpha, linewidth=1.5)
+
+# Plot events
+ax.plot(xA_p, tA_p, 'ro', markersize=12, label='Event A', zorder=5)
+ax.plot(xB_p, tB_p, 'bo', markersize=12, label='Event B', zorder=5)
+ax.plot(xC_p, tC_p, 'go', markersize=12, label='Event C', zorder=5)
+
+# Event labels
+for (x, t, name, color) in [(xA_p, tA_p, 'A', 'r'), (xB_p, tB_p, 'B', 'b'), (xC_p, tC_p, 'C', 'g')]:
+    ax.text(x + 0.5, t + 0.5, name, color=color, weight='bold', fontsize=14,
+            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', boxstyle='round,pad=0.3'))
+
+# Frame info
+gamma = 1 / np.sqrt(1 - v_frame**2)
+ax.text(0.05, 0.95, f"Frame {frame}: v = {v_frame:.2f}c, γ = {gamma:.3f}",
+        transform=ax.transAxes, fontsize=11, verticalalignment='top',
+        bbox=dict(facecolor='white', alpha=0.9, boxstyle='round,pad=0.5'))
+
+ax.legend(loc='upper right', fontsize=10)
+
+st.pyplot(fig)
+plt.close()
+
+# Information panels
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("📊 Spacetime Intervals")
+    st.markdown("**Formula:** $S^2 = (c \\Delta t)^2 - (\\Delta x)^2$")
+    
+    c = 1
+    def S2(a, b):
+        return (c*(b[0]-a[0]))**2 - (b[1]-a[1])**2
+    
+    S2_AB = S2((tA_p, xA_p), (tB_p, xB_p))
+    S2_AC = S2((tA_p, xA_p), (tC_p, xC_p))
+    S2_BC = S2((tB_p, xB_p), (tC_p, xC_p))
+    
+    def interval_type(S2_val):
+        if S2_val > 0:
+            return f"timelike (S = {np.sqrt(S2_val):.3f})"
+        elif S2_val < 0:
+            return f"spacelike (S = {np.sqrt(-S2_val):.3f}i)"
+        else:
+            return "lightlike (S = 0)"
+    
+    st.write(f"**A↔B:** $S^2_{{AB}} = {S2_AB:.3f}$ — {interval_type(S2_AB)}")
+    st.write(f"**A↔C:** $S^2_{{AC}} = {S2_AC:.3f}$ — {interval_type(S2_AC)}")
+    st.write(f"**B↔C:** $S^2_{{BC}} = {S2_BC:.3f}$ — {interval_type(S2_BC)}")
 
 with col2:
-    st.subheader("Lorentz Transform (active frame)")
-    st.latex(r"t' = \gamma (t - v x), \quad x' = \gamma (x - v t)")
-    st.write(f"**Frame {frame}**:  **v = {v_frame:.2f} c**,  **γ = {1.0 / math.sqrt(1.0 - v_frame**2 + 1e-15):.3f}**")
-    st.caption("Hyperbolae: blue (timelike), red (spacelike). Cyan: simultaneity. Magenta: time axes. Dotted: light cones.")
+    st.subheader("🔄 Lorentz Transform")
+    st.markdown(f"**Frame {frame} Transform:**")
+    st.latex(r"t' = \gamma (t - v x)")
+    st.latex(r"x' = \gamma (x - v t)")
+    st.write(f"**Current values:** $v = {v_frame:.2f}c$, $\\gamma = {gamma:.3f}$")
+
+# Legend
+st.subheader("🎨 Diagram Color Key")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.markdown("🟣 **Magenta**: Time Axes")
+with col2:
+    st.markdown("🔵 **Cyan**: Simultaneity Lines")
+with col3:
+    st.markdown("⚫ **Gray**: Worldlines")
+with col4:
+    st.markdown("📍 **Dashed**: Light Cones")
+
+# Info section
+with st.expander("ℹ️ About This Visualization"):
+    st.markdown("""
+    This interactive Minkowski spacetime diagram helps visualize concepts from special relativity:
+    
+    - **Events A, B, C**: Points in spacetime with coordinates (t, x)
+    - **Reference Frames**: Switch between different observers' perspectives
+    - **Lorentz Transformation**: See how coordinates change between frames
+    - **Spacetime Intervals**: Invariant measures between events
+    - **Light Cones**: Regions of causally connected events (45° lines)
+    - **Worldlines**: Paths of objects through spacetime
+    
+    Adjust the velocities and event positions to explore how special relativity works!
+    """)
