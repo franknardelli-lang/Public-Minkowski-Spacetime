@@ -235,6 +235,37 @@ SECTION 6 — Useful System Tools
 
 ----------------------------------------------------------------------
 
+----------------------------------------------------------------------
+SECTION 7 — Updating This Developer Reference File Across All Repos
+----------------------------------------------------------------------
+
+This file (dev_reference.txt) lives inside every repository.  
+The master copy is located at:
+
+    ~/dev_reference.txt
+
+When you update the master copy, you can automatically sync the new
+version to all repositories using the update script.
+
+Run this command from your WSL terminal:
+
+    ./update_dev_reference.sh
+
+What this script does:
+- Copies the master dev_reference.txt into each repo under ~/github
+- Stages the updated file
+- Commits it (only if changed)
+- Pushes the update to GitHub
+- Skips repositories with no changes
+
+You can also run it from VS Code:
+
+1. Press Ctrl + Shift + P
+2. Select “Run Task”
+3. Choose “Update Dev Reference in All Repos”
+
+
+
 If you want, I can generate:
 ✔ HTML version
 ✔ Markdown version
