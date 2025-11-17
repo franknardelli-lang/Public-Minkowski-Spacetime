@@ -244,6 +244,13 @@ The master copy is located at:
 
     ~/dev_reference.txt
 
+    To open master copy:
+    Ctrl + P
+    then type
+    ~/dev_reference.txt
+    Press Enter.
+    This always opens the MASTER file — not a repo copy.
+
 When you update the master copy, you can automatically sync the new
 version to all repositories using the update script.
 
