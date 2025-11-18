@@ -271,6 +271,159 @@ You can also run it from VS Code:
 2. Select “Run Task”
 3. Choose “Update Dev Reference in All Repos”
 
+============================================================
+  HOME ASSISTANT CONFIG WORKFLOW (WSL) – COMMAND REFERENCE
+============================================================
+
+NOTE:
+All of your working repositories live in:
+    /home/frank/github/
+This is your main workspace. If you ever get lost, run:
+    cd ~/github
+    ls
+to find your way back.
+
+Your Home Assistant *live* configuration folder (the one running
+inside Home Assistant OS) is mounted at:
+    /mnt/ha-config
+Edits made here take effect immediately inside Home Assistant.
+
+------------------------------------------------------------
+  OPENING THE HOME ASSISTANT CONFIG FOLDER
+------------------------------------------------------------
+
+1. Open config in VS Code (recommended):
+    code /mnt/ha-config
+DESCRIPTION:
+    Launches VS Code pointing directly to the HA config folder.
+
+2. Open config via VS Code GUI:
+    Use "Open Folder…" and TYPE:
+        /mnt/ha-config
+DESCRIPTION:
+    VS Code does not auto-suggest /mnt/* paths, but they work.
+
+3. Navigate to config folder in a terminal:
+    cd /mnt/ha-config
+DESCRIPTION:
+    Moves your terminal into the mounted Home Assistant config.
+
+4. Verify you're in the correct folder:
+    ls
+DESCRIPTION:
+    Should list files like configuration.yaml, automations.yaml, etc.
+
+------------------------------------------------------------
+  GIT WORKFLOW FOR HA CONFIG REPO
+------------------------------------------------------------
+
+IMPORTANT:
+The repo you commit to is the one inside:
+/mnt/ha-config
+NOT ~/github/config
+
+Perform git actions directly in /mnt/ha-config.
+
+1. Check repo status:
+    git status
+DESCRIPTION:
+    Shows which files are modified, untracked, staged, etc.
+
+2. Stage all modified files:
+    git add .
+DESCRIPTION:
+    Adds every changed file to the upcoming commit.
+
+3. Commit your changes:
+    git commit -m "Update HA config: your message here"
+DESCRIPTION:
+    Saves changes locally with a descriptive message.
+
+4. Push changes to GitHub:
+    git push
+DESCRIPTION:
+    Uploads your commits to your GitHub repository.
+
+5. Pull latest changes from GitHub:
+    git pull
+DESCRIPTION:
+    Syncs local folder with any changes made elsewhere.
+
+------------------------------------------------------------
+  PYTHON VIRTUAL ENVIRONMENT COMMANDS
+------------------------------------------------------------
+
+1. Activate venv inside a repo:
+    source venv/bin/activate
+DESCRIPTION:
+    Enables the virtual environment so Python uses repo-specific
+    packages instead of global packages.
+
+2. Deactivate venv:
+    deactivate
+DESCRIPTION:
+    Returns terminal to normal system-level Python.
+
+------------------------------------------------------------
+  WSL NAVIGATION SHORTCUTS
+------------------------------------------------------------
+
+1. Jump to the root workspace:
+    cd ~/github
+DESCRIPTION:
+    Brings you back to your main repos folder no matter where you are.
+
+2. List repos:
+    ls
+DESCRIPTION:
+    Shows all repos currently inside ~/github.
+
+------------------------------------------------------------
+  OPTIONAL BASH SHORTCUTS (ADD TO ~/.bashrc)
+------------------------------------------------------------
+
+alias haconfig="code /mnt/ha-config"
+DESCRIPTION:
+    Opens Home Assistant config in VS Code instantly.
+
+alias repos="cd ~/github && ls"
+DESCRIPTION:
+    Navigates to your repos folder and lists them.
+
+To enable these, add to ~/.bashrc and run:
+    source ~/.bashrc
+
+------------------------------------------------------------
+  RUNNING PYTHON SCRIPTS (INSIDE A REPO)
+------------------------------------------------------------
+
+1. Activate the repo's venv:
+    source venv/bin/activate
+
+2. Run Python directly:
+    python3 scriptname.py
+
+3. Example: run Streamlit app:
+    streamlit run streamlit_twin_paradox.py
+
+------------------------------------------------------------
+  SUMMARY OF MOST IMPORTANT COMMANDS TO REMEMBER
+------------------------------------------------------------
+
+code /mnt/ha-config          → Open HA config in VS Code
+cd /mnt/ha-config            → Enter HA config folder
+cd ~/github                  → Return to repos root
+source venv/bin/activate     → Enable Python venv
+deactivate                   → Disable Python venv
+git status                   → Check repo state
+git add .                    → Stage all changes
+git commit -m "msg"          → Commit changes
+git push                     → Push to GitHub
+
+============================================================
+ END OF HOME ASSISTANT CONFIG WORKFLOW REFERENCE
+============================================================
+
 
 
 If you want, I can generate:
