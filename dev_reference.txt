@@ -247,7 +247,7 @@ The master copy is located at:
     To open master copy:
     Ctrl + P
     then type
-    ~/dev_reference.txt
+    ~/dev_reference.txt         exactly like this, you have to type the "~" to get the master file
     Press Enter.
     This always opens the MASTER file — not a repo copy.
 
