@@ -10,6 +10,6 @@ services:
     environment:
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
-    volumes:
-      # Optional: Mount for live development (comment out for production)
-      # - .:/app
+    # Uncomment for live development:
+    # volumes:
+    #   - .:/app
