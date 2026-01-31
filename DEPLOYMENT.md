@@ -5,7 +5,7 @@ This guide explains how to deploy the Streamlit application to your Linux server
 
 ## Server Details
 - **User**: alan
-- **IP**: 192.168.1.162
+- **IP**: 192.168.2.90
 - **Directory**: /opt/stacks/my-streamlit-app
 - **Host Port**: 8504
 - **Container Port**: 8501
@@ -16,7 +16,7 @@ Run these commands **on your server** (SSH into it first):
 
 ```bash
 # SSH into the server
-ssh alan@192.168.1.162
+ssh alan@192.168.2.90
 
 # Create the application directory
 sudo mkdir -p /opt/stacks/my-streamlit-app
@@ -53,7 +53,7 @@ docker compose ps
    ssh-keygen -t ed25519 -C "your_email@example.com"
    
    # Copy SSH key to server
-   ssh-copy-id alan@192.168.1.162
+   ssh-copy-id alan@192.168.2.90
    ```
 
 ## Deployment Workflow
@@ -78,7 +78,7 @@ git commit -m "Your commit message"
 git push origin main
 
 # 2. SSH into server and deploy
-ssh alan@192.168.1.162
+ssh alan@192.168.2.90
 cd /opt/stacks/my-streamlit-app
 git pull origin main
 docker compose down
@@ -90,7 +90,7 @@ exit
 ## Accessing the Application
 
 Once deployed, access your application at:
-**http://192.168.1.162:8504**
+**http://192.168.2.90:8504**
 
 ## Useful Commands
 
@@ -155,7 +155,7 @@ git pull
 ### Cannot SSH into server
 ```bash
 # Test SSH connection
-ssh -v alan@192.168.1.162
+ssh -v alan@192.168.2.90
 
 # Check if SSH key is loaded
 ssh-add -l

@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Server configuration
 SERVER_USER="alan"
-SERVER_IP="192.168.1.162"
+SERVER_IP="192.168.2.90"
 SERVER_PATH="/opt/stacks/my-streamlit-app"
 
 echo -e "${BLUE}=== Minkowski Spacetime Deployment ===${NC}"
